@@ -60,7 +60,7 @@ namespace plugin {
                       std::vector<unsigned long> &counts,
                       double binWidth,
                       double samplePeriod,
-                      std::string historicalDataFilename,
+                      std::string& historicalDataFilename,
                       double minDist,
                       double maxDist,
                       double k);

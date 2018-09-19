@@ -145,7 +145,7 @@ namespace plugin {
                       std::vector<unsigned long> &distanceCounts,
                       double binWidth,
                       double samplePeriod,
-                      std::string historicalDataFilename,
+                      std::string &historicalDataFilename,
                       double minDist,
                       double maxDist,
                       double k) {
@@ -156,10 +156,12 @@ namespace plugin {
         params->distanceCounts = distanceCounts;
         params->binWidth = binWidth;
         params->samplePeriod = samplePeriod;
-        params->historicalDataFilename = std::move(historicalDataFilename);
+        params->historicalDataFilename = historicalDataFilename;
         params->minDist = minDist;
         params->maxDist = maxDist;
         params->k = k;
+
+        return params;
     };
 
 // Important: Explicitly instantiate a definition for the templated class declared in ebmetad.h.

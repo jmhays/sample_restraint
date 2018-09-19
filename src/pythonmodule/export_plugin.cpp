@@ -417,15 +417,20 @@ class EBMetaDRestraintBuilder
                 siteIndices_.emplace_back(py::cast<unsigned long>(site));
             }
 
-            auto binWidth = py::cast<double>(parameter_dict["binWidth"]);
+            auto binWidth = py::cast<double>(parameter_dict["bin_width"]);
             auto minDist = py::cast<double>(parameter_dict["min_dist"]);
             auto maxDist = pybind11::cast<double>(parameter_dict["max_dist"]);
 
             std::vector<std::vector<double>> forces{};
             py::list tmpForceTable = parameter_dict["force_table"];
             for (auto&& myvec : tmpForceTable){
-                forces.push_back(py::cast<std::vector<double>>(myvec));
+                std::vector<double> tmp{};
+                for (auto& elem: myvec){
+                    tmp.push_back(py::cast<double>(elem));
+                }
+                forces.push_back(tmp);
             }
+
             auto distanceCounts = pybind11::cast<std::vector<unsigned long>>(parameter_dict["distance_counts"]);
             auto samplePeriod = pybind11::cast<double>(parameter_dict["sample_period"]);
             auto k = pybind11::cast<double>(parameter_dict["k"]);
@@ -442,7 +447,6 @@ class EBMetaDRestraintBuilder
                     k);
 
             params_ = std::move(*params);
-
             // Note that if we want to grab a reference to the Context or its communicator, we can get it
             // here through element.workspec._context. We need a more general API solution, but this code is
             // in the Python bindings code, so we know we are in a Python Context.
@@ -737,7 +741,7 @@ PYBIND11_MODULE(myplugin, m) {
 
     // Export a Python class for our parameters struct
     py::class_<plugin::EBMetaDRestraint::input_param_type> ebmetadParams(m, "EBMetaDRestraintParams");
-    m.def("make_ensemble_params",
+    m.def("make_ebmetad_params",
           &plugin::makeEBMetaDParams);
 
     // API object to build.
