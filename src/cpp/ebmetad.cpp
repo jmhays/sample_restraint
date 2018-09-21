@@ -83,8 +83,19 @@ namespace plugin {
         const auto R = sqrt(Rsquared);
 
         // Store historical data every samplePeriod steps
-        if ((bool)std::fmod(t, samplePeriod_) && t > 0) {
+	// Time for an update if modulus is zero
+	time_for_update = ! (bool) std::fmod(t, samplePeriod_)   
+        if (time_for_update) {
+            fprintf(stderr, "UPDATING DISTANCE COUNTS: t=%f d=%f\n", t, R);
             distanceCounts_.at(distToBin(R, binWidth_))++;
+
+            // Just for reporting
+            double f{0};
+            auto forceVector = forces_[distToBin(R, binWidth_)];
+            for (unsigned long i = 0; i < distanceCounts_.size(); i++){
+                    f += forceVector[i]*distanceCounts_[i];
+                }
+            fprintf(stderr, "NEW FORCES WILL BE: %f\n", f);
         };
 
         // Write the new counts to a file so that simulations may be resumed.
