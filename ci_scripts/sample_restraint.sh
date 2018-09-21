@@ -2,7 +2,7 @@
 set -ev
 
 pushd $HOME
- [ -d sample_restraint ] || git clone --depth=1 --no-single-branch https://github.com/kassonlab/sample_restraint.git
+ [ -d sample_restraint ] || git clone --depth=1 --no-single-branch https://github.com/jmhays/sample_restraint.git
  pushd sample_restraint
   git checkout $1
   rm -rf build

@@ -84,7 +84,7 @@ namespace plugin {
 
         // Store historical data every samplePeriod steps
 	// Time for an update if modulus is zero
-	time_for_update = ! (bool) std::fmod(t, samplePeriod_)   
+	auto time_for_update = ! (bool) std::fmod(t, samplePeriod_);
         if (time_for_update) {
             fprintf(stderr, "UPDATING DISTANCE COUNTS: t=%f d=%f\n", t, R);
             distanceCounts_.at(distToBin(R, binWidth_))++;
