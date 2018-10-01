@@ -93,7 +93,7 @@ namespace plugin {
             double f{0};
             auto forceVector = forces_[distToBin(R, binWidth_)];
             for (unsigned long i = 0; i < distanceCounts_.size(); i++){
-                    f -= forceVector[i]*distanceCounts_[i];
+                    f += forceVector[i]*distanceCounts_[i];
                 }
             fprintf(stderr, "NEW FORCES WILL BE: %f\n", f);
         };
@@ -146,7 +146,7 @@ namespace plugin {
                 }
             }
 
-            output.force = - f * rdiff;
+            output.force = f * rdiff;
         }
         return output;
     }
