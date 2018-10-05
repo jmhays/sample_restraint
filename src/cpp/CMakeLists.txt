@@ -66,6 +66,49 @@ set_target_properties(ebmetad PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
 
 target_link_libraries(ebmetad PRIVATE Gromacs::gmxapi)
 
+# Add linear potential
+add_library(linear STATIC
+            linearpotential.h
+            linearpotential.cpp
+            sessionresources.cpp)
+set_target_properties(linear PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+target_include_directories(linear PUBLIC
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                           $<INSTALL_INTERFACE:include>
+                           )
+# RPATH management
+# don't skip the full RPATH for the build tree
+set_target_properties(linear PROPERTIES SKIP_BUILD_RPATH FALSE)
+
+# (but later on when installing)
+# If building with setuptools, CMake will not be performing the install
+set_target_properties(linear PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
+
+target_link_libraries(linear PRIVATE Gromacs::gmxapi)
+
+# Add linearstop potential
+add_library(linearstop STATIC
+            linearstoppotential.h
+            linearstoppotential.cpp
+            sessionresources.cpp)
+set_target_properties(linearstop PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+target_include_directories(linearstop PUBLIC
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                           $<INSTALL_INTERFACE:include>
+                           )
+# RPATH management
+# don't skip the full RPATH for the build tree
+set_target_properties(linearstop PROPERTIES SKIP_BUILD_RPATH FALSE)
+
+# (but later on when installing)
+# If building with setuptools, CMake will not be performing the install
+set_target_properties(linearstop PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
+
+target_link_libraries(linearstop PRIVATE Gromacs::gmxapi)
+
+
 # Add BRER code
 add_library(brer STATIC
             brerpotential.h
