@@ -49,8 +49,9 @@
 /*! \addtogroup group_compatibility
  * ### gmx::compat::make_unique
  *
- * Provide a trivially adapted implementation of the C++ standard library `make_unique` function template.
- * When All supported \Gromacs build platforms provide `std::make_unique`, this should be removed.
+ * Provide a trivially adapted implementation of the C++ standard library
+ * `make_unique` function template. When All supported \Gromacs build platforms
+ * provide `std::make_unique`, this should be removed.
  *
  */
 #include <cstddef>
@@ -59,50 +60,40 @@
 #include <type_traits>
 #include <utility>
 
-namespace gmx
-{
-namespace compat
-{
+namespace gmx {
+namespace compat {
 
 ///\cond
 
 // All gmx::compat code should use std::unique_ptr
 using ::std::unique_ptr;
 
-template<class T> struct Unique_if {
-    typedef unique_ptr<T> Single_object;
+template <class T> struct Unique_if { typedef unique_ptr<T> Single_object; };
+
+template <class T> struct Unique_if<T[]> {
+  typedef unique_ptr<T[]> Unknown_bound;
 };
 
-template<class T> struct Unique_if<T[]> {
-    typedef unique_ptr<T[]> Unknown_bound;
+template <class T, size_t N> struct Unique_if<T[N]> {
+  typedef void Known_bound;
 };
 
-template<class T, size_t N> struct Unique_if<T[N]> {
-    typedef void Known_bound;
-};
-
-template<class T, class ... Args>
-typename Unique_if<T>::Single_object
-make_unique(Args && ... args)
-{
-    return unique_ptr<T>(new T(::std::forward<Args>(args) ...));
+template <class T, class... Args>
+typename Unique_if<T>::Single_object make_unique(Args &&... args) {
+  return unique_ptr<T>(new T(::std::forward<Args>(args)...));
 }
 
-template<class T>
-typename Unique_if<T>::Unknown_bound
-make_unique(size_t n)
-{
-    typedef typename ::std::remove_extent<T>::type U;
-    return unique_ptr<T>(new U[n]());
+template <class T> typename Unique_if<T>::Unknown_bound make_unique(size_t n) {
+  typedef typename ::std::remove_extent<T>::type U;
+  return unique_ptr<T>(new U[n]());
 }
 
-template<class T, class ... Args>
-typename Unique_if<T>::Known_bound
-make_unique(Args && ...) = delete;
+template <class T, class... Args>
+typename Unique_if<T>::Known_bound make_unique(Args &&...) = delete;
 
 ///\endcond
 
-}      // namespace gmx::compat
-}      // namespace gmx
+} // namespace compat
+} // namespace gmx
 
 #endif // header guard
