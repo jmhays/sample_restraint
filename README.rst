@@ -2,12 +2,11 @@
 Sample MD restraint plugin
 ==========================
 
-.. image:: https://travis-ci.org/jmhays/sample_restraint.svg?branch=ebmetad
-   :target: https://travis-ci.org/jmhays/sample_restraint
+.. image:: https://travis-ci.org/jmhays/sample_restraint.svg?branch=deer
+:target: https://travis-ci.org/jmhays/sample_restraint
 
-This `repository <https://github.com/kassonlab/sample_restraint>`_ provides a complete and working implementation of a
-few GROMACS restraint potentials. It is intended as both
-a tutorial and as a template for implementing new custom restraint potentials.
+This `repository branch <https://github.com/jmhays/sample_restraint/tree/deer>`_ provides a complete implementation of
+GROMACS restraint potentials that can incorporate DEER experimental data.
 
 Restraint potentials are implemented as "plugins" to GROMACS. The required GROMACS modifications are available at this
 `GitHub repository <https://github.com/kassonlab/gromacs-gmxapi>`_
@@ -15,8 +14,6 @@ Restraint potentials are implemented as "plugins" to GROMACS. The required GROMA
 The plugin potentials are loaded and configured via Python and are compatible with the
 `gmxapi <https://github.com/kassonlab/gmxapi>`_
 Python package for MD simulation workflows.
-
-For a quick start, consider pulling a recent Docker image that has already been configured for gmxapi and this plug-in.
 
 Reference:
 
