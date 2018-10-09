@@ -140,7 +140,7 @@ gmx::PotentialPointData BRER::calculate(gmx::Vector v, gmx::Vector v0,
   if (R != 0) {
     // For harmonic: output.force = k * (double(R0)/R - 1.0)*rdiff;
     // For BRER: outpu.force = - alpha/target * (unit vector in direction v-v0).
-    output.force = (alpha_ / target_ / double(R)) *
+    output.force = - (alpha_ / target_ / double(R)) *
                    rdiff; // Why is there a double cast here?
   }
 
