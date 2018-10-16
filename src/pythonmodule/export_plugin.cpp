@@ -999,7 +999,7 @@ PYBIND11_MODULE(myplugin, m) {
    * The build() method returns None or a launcher. A launcher has a signature
    * like launch(rank) and returns None or a runner.
    */
-  m.def("create_restraint",
+  m.def("linear_restraint",
         [](const py::object element) { return createLinearBuilder(element); });
 
   //
