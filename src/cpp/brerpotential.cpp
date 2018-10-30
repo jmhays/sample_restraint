@@ -61,6 +61,11 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       nextUpdateTime_ = t + tau_;
 
       mean_ = R;
+
+       // We expect that the amount of energy we need to add to the system will be
+       // APPROXIMATELY proportional to the difference in R and the target.
+      A_ *= std::fabs(target_ - R);
+
       parameter_file_ =
           gmx::compat::make_unique<RAIIFile>(parameter_filename_.c_str(), "w");
       if (parameter_file_) {
