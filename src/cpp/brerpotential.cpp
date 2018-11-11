@@ -62,9 +62,12 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
 
       mean_ = R;
 
-       // We expect that the amount of energy we need to add to the system will be
-       // APPROXIMATELY proportional to the difference in R and the target.
+      // We expect that the amount of energy we need to add to the system will be
+      // APPROXIMATELY proportional to the difference in R and the target.
       A_ *= std::fabs(target_ - R);
+      // Similarly, the tolerance should be adjusted so that it is essentially a
+      // percentage of the maximum energy input
+      tolerance_ *= A_;
 
       parameter_file_ =
           gmx::compat::make_unique<RAIIFile>(parameter_filename_.c_str(), "w");
