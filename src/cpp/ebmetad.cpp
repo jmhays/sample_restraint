@@ -113,10 +113,10 @@ gmx::PotentialPointData EBMetaD::calculate(gmx::Vector v, gmx::Vector v0,
 
     if (R > maxDist_) {
       // apply a force to reduce R
-      f = (k_ / norm(rdiff)) * (maxDist_ - R);
+      f = -(k_ / norm(rdiff)) * (maxDist_ - R);
     } else if (R < minDist_) {
       // apply a force to increase R
-      f = (k_ / norm(rdiff)) * (minDist_ - R);
+      f = -(k_ / norm(rdiff)) * (minDist_ - R);
     } else {
       /// Here we do EBMetaD evaluation
       /// The force will be a sum of the force factors associated with the
