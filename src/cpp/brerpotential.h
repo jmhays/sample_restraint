@@ -107,6 +107,7 @@ public:
   }
 
   double getAlpha() { return alpha_; }
+  double getTarget() {return target_;}
 
 private:
   bool initialized_{false};
@@ -192,6 +193,7 @@ public:
   }
 
   using BRER::getAlpha;
+  using BRER::getTarget;
 
 private:
   std::vector<unsigned long int> sites_;
