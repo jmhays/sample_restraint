@@ -29,6 +29,7 @@ struct BRER_input_param_type {
   /// learned coupling constant
   double alpha{0};
   double alpha_prev{0};
+  double alpha_max{0};
 
   /// keep track of mean and variance
   double mean{0};
@@ -75,7 +76,7 @@ public:
 
   explicit BRER(const input_param_type &params);
 
-  BRER(double alpha, double alpha_prev, double mean, double variance, double A,
+  BRER(double alpha, double alpha_prev, double alpha_max, double mean, double variance, double A,
        double tau, double g, double gsqrsum, double eta, bool converged,
        double tolerance, double target, unsigned int nSamples,
        std::string parameter_filename);
@@ -106,7 +107,7 @@ public:
     //            std::cout << std::endl;
   }
 
-  double getAlpha() { return alpha_; }
+  double getAlphaMax() { return alpha_max_; }
   double getTarget() {return target_;}
 
 private:
@@ -115,6 +116,7 @@ private:
   /// learned coupling constant
   double alpha_;
   double alpha_prev_;
+  double alpha_max_;
 
   /// keep track of mean and variance
   double mean_;
@@ -192,7 +194,7 @@ public:
     resources_ = std::move(resources);
   }
 
-  using BRER::getAlpha;
+  using BRER::getAlphaMax;
   using BRER::getTarget;
 
 private:

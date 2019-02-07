@@ -25,26 +25,26 @@
 
 namespace plugin {
 
-BRER::BRER(double alpha, double alpha_prev, double mean, double variance,
+BRER::BRER(double alpha, double alpha_prev, double alpha_max, double mean, double variance,
            double A, double tau, double g, double gsqrsum, double eta,
            bool converged, double tolerance, double target,
            unsigned int nSamples, std::string parameter_filename)
-    : alpha_{alpha}, alpha_prev_{alpha_prev}, mean_{mean}, variance_{variance},
+    : alpha_{alpha}, alpha_prev_{alpha_prev}, alpha_max_{alpha_max}, mean_{mean}, variance_{variance},
       A_{A}, tau_{tau}, g_{g}, gsqrsum_{gsqrsum}, eta_{eta},
       converged_{converged},
       tolerance_{tolerance}, target_{target}, nSamples_{nSamples},
       samplePeriod_{tau / nSamples}, parameter_filename_{parameter_filename} {};
 
 BRER::BRER(const input_param_type &params)
-    : BRER(params.alpha, params.alpha_prev, params.mean, params.variance,
+    : BRER(params.alpha, params.alpha_prev, params.alpha_max, params.mean, params.variance,
            params.A, params.tau, params.g, params.gsqrsum, params.eta,
            params.converged, params.tolerance, params.target, params.nSamples,
            params.parameter_filename) {}
 
 void BRER::writeparameters(double t, const double R) {
   if (parameter_file_) {
-    fprintf(parameter_file_->fh(), "%f\t%f\t%f\t%d\t%f\t%f\t%f\n", t, R,
-            target_, converged_, alpha_, g_, eta_);
+    fprintf(parameter_file_->fh(), "%f\t%f\t%f\t%d\t%f\t%f\t%f\t%f\n", t, R,
+            target_, converged_, alpha_, alpha_max_, g_, eta_);
   }
 }
 
@@ -73,7 +73,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
           gmx::compat::make_unique<RAIIFile>(parameter_filename_.c_str(), "w");
       if (parameter_file_) {
         fprintf(parameter_file_->fh(),
-                "time\tR\ttarget\tconverged\talpha\tg\teta\n");
+                "time\tR\ttarget\tconverged\talpha\talpha_max\tg\teta\n");
         writeparameters(t, R);
       }
       initialized_ = true;
@@ -99,6 +99,8 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       alpha_ = alpha_prev_ - eta_ * g_;
 
       printf("alpha: %f\n", alpha_);
+      if (fabs(alpha_) > alpha_max_) alpha_max_ = fabs(alpha_);
+
       // Reset mean and variance
       mean_ = R;
       variance_ = 0;

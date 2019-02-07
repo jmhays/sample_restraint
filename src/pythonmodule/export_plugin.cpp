@@ -1158,7 +1158,7 @@ PYBIND11_MODULE(myplugin, m) {
   // EnsembleRestraint can only be created via builder for now.
   brer.def("bind", &PyBRER::bind, "Implement binding protocol");
   brer.def_property_readonly("name", &PyBRER::name, "Get the name");
-  brer.def_property_readonly("alpha", [](PyBRER* potential){ return static_cast<plugin::BRERRestraint*>(potential->getRestraint().get())->getAlpha(); });
+  brer.def_property_readonly("alpha", [](PyBRER* potential){ return static_cast<plugin::BRERRestraint*>(potential->getRestraint().get())->getAlphaMax(); });
   brer.def_property_readonly("target", [](PyBRER* potential){ return static_cast<plugin::BRERRestraint*>(potential->getRestraint().get())->getTarget(); });
   /*
    * To implement gmxapi_workspec_1_0, the module needs a function that a
