@@ -147,7 +147,7 @@ PyRestraint<plugin::RestraintModule<plugin::EnsembleRestraint>>::getModule() {
 
 template <>
 std::shared_ptr<gmxapi::MDModule>
-PyRestraint<plugin::LinearModule>::getModule() {
+PyRestraint<plugin::RestraintModule<plugin::LinearRestraint>>::getModule() {
   return shared_from_this();
 }
 
@@ -202,60 +202,85 @@ const char *MyRestraint::docstring =
  * operations.
  */
 
-class LinearRestraintBuilder {
+class LinearRestraintBuilder{
 public:
-  /*!
-   * \brief Create directly from workflow element.
-   *
-   * \param element a Python object implementing the gmx.workflow.WorkElement
-   * interface.
-   *
-   * It doesn't make sense to take a py::object here. We could take a serialized
-   * version of the element iff we also got a reference to the current context,
-   * but right now we use the gmx.workflow.WorkElement's reference to the
-   * WorkSpec, which has a reference to the Context, to get, say, the
-   * communicator. Arguably, a builder provided by the restraint shouldn't do
-   * such a thing.
-   *
-   * Either the builder / translator / DAG updater should be Context agnostic or
-   * should actually be implemented in the Context, in which case we need some
-   * better convention about what that translation should look like and what
-   * resources need to be provided by the module to do it.
-   */
-
   explicit LinearRestraintBuilder(py::object element) {
+    name_ = py::cast<std::string>(element.attr("name"));
+    assert(!name_.empty());
+
+    // It looks like we need some boilerplate exceptions for plugins so we have
+    // something to raise if the element is invalid.
+    assert(py::hasattr(element, "params"));
+
     // Params attribute should be a Python list
-    auto parameter_dict = py::cast<py::dict>(element.attr("params"));
-    // Get positional parameters: two ints and two doubles.
-    assert(parameter_dict.contains("sites"));
-    assert(parameter_dict.contains("target"));
-    assert(parameter_dict.contains("alpha"));
+    py::dict parameter_dict = element.attr("params");
+    // \todo Check for the presence of these dictionary keys to avoid
+    // hard-to-diagnose error.
+
+    // Get positional parameters.
     py::list sites = parameter_dict["sites"];
     for (auto &&site : sites) {
       siteIndices_.emplace_back(py::cast<unsigned long>(site));
     }
 
-    equilibriumPosition_ = py::cast<real>(parameter_dict["target"]);
-    springConstant_ = py::cast<real>(parameter_dict["alpha"]);
-  };
+    auto alpha = py::cast<double>(parameter_dict["alpha"]);
+    auto samplePeriod = py::cast<double>(parameter_dict["samplePeriod"]);
+    auto target = py::cast<double>(parameter_dict["target"]);
+    auto logging_filename =
+        py::cast<std::string>(parameter_dict["logging_filename"]);
+
+    auto params = plugin::makeLinearParams(alpha, target,
+            samplePeriod, logging_filename);
+
+    params_ = std::move(*params);
+
+    // Note that if we want to grab a reference to the Context or its
+    // communicator, we can get it here through element.workspec._context. We
+    // need a more general API solution, but this code is in the Python bindings
+    // code, so we know we are in a Python Context.
+    assert(py::hasattr(element, "workspec"));
+    auto workspec = element.attr("workspec");
+    assert(py::hasattr(workspec, "_context"));
+    context_ = workspec.attr("_context");
+  }
 
   /*!
    * \brief Add node(s) to graph for the work element.
    *
    * \param graph networkx.DiGraph object still evolving in gmx.context.
    *
-   * \todo This does not follow the latest graph building protocol as described.
+   * \todo This may not follow the latest graph building protocol as described.
    */
   void build(py::object graph) {
-    auto potential = PyRestraint<plugin::LinearModule>::create(
-        siteIndices_, equilibriumPosition_, springConstant_);
+    // Temporarily subvert things to get quick-and-dirty solution for testing.
+    // Need to capture Python communicator and pybind syntax in closure so
+    // EnsembleResources can just call with matrix arguments.
+
+    // This can be replaced with a subscription and delayed until launch, if
+    // necessary.
+    assert(py::hasattr(context_, "ensemble_update"));
+    // make a local copy of the Python object so we can capture it in the lambda
+    auto update = context_.attr("ensemble_update");
+    // Make a callable with standardizeable signature.
+    const std::string name{name_};
+    auto functor = [update, name](const plugin::Matrix<double> &send,
+                                  plugin::Matrix<double> *receive) {
+      update(send, receive, py::str(name));
+    };
+
+    // To use a reduce function on the Python side, we need to provide it with a
+    // Python buffer-like object, so we will create one here. Note: it looks
+    // like the SharedData element will be useful after all.
+    auto resources =
+        std::make_shared<plugin::EnsembleResources>(std::move(functor));
+
+    auto potential =
+        PyRestraint<plugin::RestraintModule<plugin::LinearRestraint>>::
+            create(name_, siteIndices_, params_, resources);
 
     auto subscriber = subscriber_;
-    py::list potential_list = subscriber.attr("potential");
-    potential_list.append(potential);
-
-    // does note add a launcher to the graph.
-    // std::unique_ptr<RestraintLauncher>();
+    py::list potentialList = subscriber.attr("potential");
+    potentialList.append(potential);
   };
 
   /*!
@@ -268,16 +293,99 @@ public:
    * is then bound with system.add_potential(potential) during the subscriber's
    * launch()
    */
-  void add_subscriber(py::object subscriber) {
+  void addSubscriber(py::object subscriber) {
     assert(py::hasattr(subscriber, "potential"));
     subscriber_ = subscriber;
   };
 
   py::object subscriber_;
+  py::object context_;
   std::vector<unsigned long int> siteIndices_;
-  real equilibriumPosition_;
-  real springConstant_;
+
+  plugin::linear_input_param_type params_;
+
+  std::string name_;
 };
+
+// ========================================================
+//class LinearRestraintBuilder {
+//public:
+//  /*!
+//   * \brief Create directly from workflow element.
+//   *
+//   * \param element a Python object implementing the gmx.workflow.WorkElement
+//   * interface.
+//   *
+//   * It doesn't make sense to take a py::object here. We could take a serialized
+//   * version of the element iff we also got a reference to the current context,
+//   * but right now we use the gmx.workflow.WorkElement's reference to the
+//   * WorkSpec, which has a reference to the Context, to get, say, the
+//   * communicator. Arguably, a builder provided by the restraint shouldn't do
+//   * such a thing.
+//   *
+//   * Either the builder / translator / DAG updater should be Context agnostic or
+//   * should actually be implemented in the Context, in which case we need some
+//   * better convention about what that translation should look like and what
+//   * resources need to be provided by the module to do it.
+//   */
+//
+//  explicit LinearRestraintBuilder(py::object element) {
+//    // Params attribute should be a Python list
+//    auto parameter_dict = py::cast<py::dict>(element.attr("params"));
+//    // Get positional parameters: two ints and two doubles.
+//    assert(parameter_dict.contains("sites"));
+//    assert(parameter_dict.contains("target"));
+//    assert(parameter_dict.contains("alpha"));
+//    assert(parameter_dict.contains("logging_filename"));
+//    py::list sites = parameter_dict["sites"];
+//    for (auto &&site : sites) {
+//      siteIndices_.emplace_back(py::cast<unsigned long>(site));
+//    }
+//
+//    equilibriumPosition_ = py::cast<real>(parameter_dict["target"]);
+//    springConstant_ = py::cast<real>(parameter_dict["alpha"]);
+//    logging_
+//  };
+//
+//  /*!
+//   * \brief Add node(s) to graph for the work element.
+//   *
+//   * \param graph networkx.DiGraph object still evolving in gmx.context.
+//   *
+//   * \todo This does not follow the latest graph building protocol as described.
+//   */
+//  void build(py::object graph) {
+//    auto potential = PyRestraint<plugin::LinearModule>::create(
+//        siteIndices_, equilibriumPosition_, springConstant_);
+//
+//    auto subscriber = subscriber_;
+//    py::list potential_list = subscriber.attr("potential");
+//    potential_list.append(potential);
+//
+//    // does note add a launcher to the graph.
+//    // std::unique_ptr<RestraintLauncher>();
+//  };
+//
+//  /*!
+//   * \brief Accept subscription of an MD task.
+//   *
+//   * \param subscriber Python object with a 'potential' attribute that is a
+//   * Python list.
+//   *
+//   * During build, an object is added to the subscriber's self.potential, which
+//   * is then bound with system.add_potential(potential) during the subscriber's
+//   * launch()
+//   */
+//  void add_subscriber(py::object subscriber) {
+//    assert(py::hasattr(subscriber, "potential"));
+//    subscriber_ = subscriber;
+//  };
+//
+//  py::object subscriber_;
+//  std::vector<unsigned long int> siteIndices_;
+//  real equilibriumPosition_;
+//  real springConstant_;
+//};
 
 class HarmonicRestraintBuilder {
 public:
@@ -968,29 +1076,31 @@ PYBIND11_MODULE(myplugin, m) {
   m.def("create_restraint", [](const py::object element) {
     return createHarmonicBuilder(element);
   });
-
-  /////////////////////////////////////////////////////
+   //////////////////////////////////////////////////////////////////////////
   // Begin LinearRestraint
   //
-  // Builder to be returned from create_restraint,
-  py::class_<LinearRestraintBuilder> linearBuilder(m, "LinearBuilder");
-  linearBuilder.def("add_subscriber", &LinearRestraintBuilder::add_subscriber);
+  // Define Builder to be returned from linear_restraint Python function
+  // defined further down.
+  pybind11::class_<LinearRestraintBuilder> linearBuilder(
+      m, "LinearStopBuilder");
+  linearBuilder.def("add_subscriber",
+                        &LinearRestraintBuilder::addSubscriber);
   linearBuilder.def("build", &LinearRestraintBuilder::build);
 
-  // API object to build.
-  // We use a shared_ptr handle because both the Python interpreter and
-  // libgromacs may need to extend the lifetime of the object.
-  py::class_<PyRestraint<plugin::LinearModule>,
-             std::shared_ptr<PyRestraint<plugin::LinearModule>>>
-      linear(m, "LinearRestraint");
+  // Get more concise name for the template instantiation...
+  using PyLinear =
+      PyRestraint<plugin::RestraintModule<plugin::LinearRestraint>>;
 
-  // Deprecated constructor directly taking restraint paramaters.
-  linear.def(
-      py::init([](std::vector<unsigned long int> sites, real R0, real k) {
-        return PyRestraint<plugin::LinearModule>::create(sites, R0, k);
-      }),
-      "Construct LinearRestraint");
-  linear.def("bind", &PyRestraint<plugin::LinearModule>::bind);
+  // Export a Python class for our parameters struct
+  py::class_<plugin::LinearRestraint::input_param_type> linearParams(
+      m, "LinearRestraintParams");
+  m.def("make_linear_params", &plugin::makeLinearParams);
+
+  // API object to build.
+  py::class_<PyLinear, std::shared_ptr<PyLinear>> linear(
+      m, "LinearRestraint");
+  // LinearStopRestraint can only be created via builder for now.
+  linear.def("bind", &PyLinear::bind, "Implement binding protocol");
   /*
    * To implement gmxapi_workspec_1_0, the module needs a function that a
    * Context can import that produces a builder that translates workspec
@@ -999,8 +1109,48 @@ PYBIND11_MODULE(myplugin, m) {
    * The build() method returns None or a launcher. A launcher has a signature
    * like launch(rank) and returns None or a runner.
    */
-  m.def("linear_restraint",
-        [](const py::object element) { return createLinearBuilder(element); });
+
+  // Generate the name operation that will be used to specify elements of Work
+  // in gmxapi workflows. WorkElements will then have namespace: "myplugin" and
+  // operation: "linearStop_restraint"
+  m.def("linearStop_restraint", [](const py::object element) {
+    return createLinearStopBuilder(element);
+  });
+  //
+  // End LinearStopRestraint
+  ///////////////////////////////////////////////////////////////////////////
+//  /////////////////////////////////////////////////////
+//  // Begin LinearRestraint
+//  //
+//  // Builder to be returned from create_restraint,
+//  py::class_<LinearRestraintBuilder> linearBuilder(m, "LinearBuilder");
+//  linearBuilder.def("add_subscriber", &LinearRestraintBuilder::add_subscriber);
+//  linearBuilder.def("build", &LinearRestraintBuilder::build);
+//
+//  // API object to build.
+//  // We use a shared_ptr handle because both the Python interpreter and
+//  // libgromacs may need to extend the lifetime of the object.
+//  py::class_<PyRestraint<plugin::LinearModule>,
+//             std::shared_ptr<PyRestraint<plugin::LinearModule>>>
+//      linear(m, "LinearRestraint");
+//
+//  // Deprecated constructor directly taking restraint paramaters.
+//  linear.def(
+//      py::init([](std::vector<unsigned long int> sites, real R0, real k) {
+//        return PyRestraint<plugin::LinearModule>::create(sites, R0, k);
+//      }),
+//      "Construct LinearRestraint");
+//  linear.def("bind", &PyRestraint<plugin::LinearModule>::bind);
+//  /*
+//   * To implement gmxapi_workspec_1_0, the module needs a function that a
+//   * Context can import that produces a builder that translates workspec
+//   * elements for session launching. The object returned by our function needs
+//   * to have an add_subscriber(other_builder) method and a build(graph) method.
+//   * The build() method returns None or a launcher. A launcher has a signature
+//   * like launch(rank) and returns None or a runner.
+//   */
+//  m.def("linear_restraint",
+//        [](const py::object element) { return createLinearBuilder(element); });
 
   //
   // End LinearRestraint
