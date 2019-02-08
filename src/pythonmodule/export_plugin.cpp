@@ -1113,11 +1113,11 @@ PYBIND11_MODULE(myplugin, m) {
   // Generate the name operation that will be used to specify elements of Work
   // in gmxapi workflows. WorkElements will then have namespace: "myplugin" and
   // operation: "linearStop_restraint"
-  m.def("linearStop_restraint", [](const py::object element) {
-    return createLinearStopBuilder(element);
+  m.def("linear_restraint", [](const py::object element) {
+    return createLinearBuilder(element);
   });
   //
-  // End LinearStopRestraint
+  // End LinearRestraint
   ///////////////////////////////////////////////////////////////////////////
 //  /////////////////////////////////////////////////////
 //  // Begin LinearRestraint
