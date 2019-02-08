@@ -1082,7 +1082,7 @@ PYBIND11_MODULE(myplugin, m) {
   // Define Builder to be returned from linear_restraint Python function
   // defined further down.
   pybind11::class_<LinearRestraintBuilder> linearBuilder(
-      m, "LinearStopBuilder");
+      m, "LinearBuilder");
   linearBuilder.def("add_subscriber",
                         &LinearRestraintBuilder::addSubscriber);
   linearBuilder.def("build", &LinearRestraintBuilder::build);
