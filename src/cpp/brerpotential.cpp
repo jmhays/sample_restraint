@@ -45,6 +45,7 @@ void BRER::writeparameters(double t, const double R) {
   if (parameter_file_) {
     fprintf(parameter_file_->fh(), "%f\t%f\t%f\t%d\t%f\t%f\t%f\t%f\n", t, R,
             target_, converged_, alpha_, alpha_max_, g_, eta_);
+    fflush(parameter_file_->fh());
   }
 }
 

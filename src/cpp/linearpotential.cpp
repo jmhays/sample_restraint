@@ -43,6 +43,7 @@ Linear::Linear(const input_param_type &params)
 void Linear::writeparameters(double t, const double R) {
   if (logging_file_) {
     fprintf(logging_file_->fh(), "%f\t%f\t%f\t%f\n", t, R, target_, alpha_);
+    fflush(logging_file_->fh());
   }
 }
 
