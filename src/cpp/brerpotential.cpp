@@ -65,7 +65,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
 
       // We expect that the amount of energy we need to add to the system will be
       // APPROXIMATELY proportional to the difference in R and the target.
-      A_ *= std::fabs(target_ - R);
+//      A_ *= std::fabs(target_ - R);
       // Similarly, the tolerance should be adjusted so that it is essentially a
       // percentage of the maximum energy input
       tolerance_ *= A_;
