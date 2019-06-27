@@ -35,7 +35,7 @@ BRER::BRER(double alpha, double alpha_prev, double alpha_max, double mean,
       alpha_max_{alpha_max}, mean_{mean}, variance_{variance}, A_{A}, tau_{tau},
       g_{g}, gsqrsum_{gsqrsum}, eta_{eta}, converged_{converged},
       tolerance_{tolerance}, target_{target}, nSamples_{nSamples},
-      samplePeriod_{tau / nSamples}, parameter_filename_{parameter_filename} {};
+      samplePeriod_{tau / nSamples}, parameter_filename_{parameter_filename}, {};
 
 BRER::BRER(const input_param_type &params)
     : BRER(params.alpha, params.alpha_prev, params.alpha_max, params.mean,
@@ -46,7 +46,7 @@ BRER::BRER(const input_param_type &params)
 //(Kasey) adding parameter sampleCount so that we may read in the log file and tell if the run was stopped
 void BRER::writeparameters(double t, const double R) {
   if (parameter_file_) {
-    fprintf(parameter_file_->fh(), "%f\t%f\t%f\t%f\t%d\t%f\t%f\t%f\t%f\n", t, R,
+    fprintf(parameter_file_->fh(), "%f\t%f\t%f\t%f\t%f\t%d\t%f\t%f\t%f\n", t, R,
             sampleCount_, target_, converged_, alpha_, alpha_max_, g_, eta_);
     fflush(parameter_file_->fh());
   }
@@ -81,7 +81,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       if (parameter_file_) {
         fprintf(parameter_file_->fh(),
                 "time\tR\tsample_count\ttarget\tconverged\talpha\talpha_max\tg\teta\n");
-        writeparameters(t, R, sampleCount_);
+        writeparameters(t, R,sampleCount_);
       }
       initialized_ = true;
     }
@@ -99,7 +99,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
             //(Kasey) checking if the training run exceeds 400 checkpoints, or 20ns; if its does, the run is immediately stopped.
       if (sampleCount>400) {
          if (parameter_file_) {
-          writeparameters(t, R,sampleCount_;
+          writeparameters(t, R,sampleCount_);
         }
          // Release filehandle and close file.
         parameter_file_->close();

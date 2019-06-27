@@ -139,13 +139,14 @@ private:
   double samplePeriod_;
 
   unsigned int currentSample_{0};
-  unsigned int sampleCount_{0}; //(Kasey)
+
   // Sampling parameters that are dependent on t and thus set upon
   // initialization of the plugin For now, since we don't have access to t,
   // we'll set them all to zero.
   double nextSampleTime_{0};
   double windowStartTime_{0};
   double nextUpdateTime_{0};
+  unsigned int sampleCount_{0}; //(Kasey)
 
   std::string parameter_filename_;
   std::unique_ptr<RAIIFile> parameter_file_{nullptr};
