@@ -80,7 +80,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
           gmx::compat::make_unique<RAIIFile>(parameter_filename_.c_str(), "w");
       if (parameter_file_) {
         fprintf(parameter_file_->fh(),
-                "time\tR\ttarget\tconverged\talpha\talpha_max\tg\teta\n");
+                "time\tR\tsample_count\ttarget\tconverged\talpha\talpha_max\tg\teta\n");
         writeparameters(t, R, sampleCount_);
       }
       initialized_ = true;
