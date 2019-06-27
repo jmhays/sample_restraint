@@ -46,7 +46,7 @@ BRER::BRER(const input_param_type &params)
 //(Kasey) adding parameter sampleCount so that we may read in the log file and tell if the run was stopped
 void BRER::writeparameters(double t, const double R) {
   if (parameter_file_) {
-    fprintf(parameter_file_->fh(), "%f\t%f\t%f\t%f\t%f\t%d\t%f\t%f\t%f\n", t, R,
+    fprintf(parameter_file_->fh(), "%f\t%f\t%d\t%f\t%d\t%f\t%f\t%f\t%f\n", t, R,
             sampleCount_, target_, converged_, alpha_, alpha_max_, g_, eta_);
     fflush(parameter_file_->fh());
   }
@@ -81,7 +81,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       if (parameter_file_) {
         fprintf(parameter_file_->fh(),
                 "time\t\tR\t\tsample_count\t\ttarget\t\tconverged\t\talpha\t\talpha_max\t\tg\t\teta\n");
-        writeparameters(t, R,);
+        writeparameters(t, R);
       }
       initialized_ = true;
     }
@@ -97,7 +97,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       nextSampleTime_ = (currentSample_ + 1) * samplePeriod_ + windowStartTime_;
       sampleCount_= sampleCount_ +1; //updating the number of sample checkpoints
             //(Kasey) checking if the training run exceeds 400 checkpoints, or 20ns; if its does, the run is immediately stopped.
-      if (sampleCount>400) {
+      if (sampleCount > int(400)) {
          if (parameter_file_) {
           writeparameters(t, R);
         }
