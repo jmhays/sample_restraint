@@ -35,7 +35,7 @@ BRER::BRER(double alpha, double alpha_prev, double alpha_max, double mean,
       alpha_max_{alpha_max}, mean_{mean}, variance_{variance}, A_{A}, tau_{tau},
       g_{g}, gsqrsum_{gsqrsum}, eta_{eta}, converged_{converged},
       tolerance_{tolerance}, target_{target}, nSamples_{nSamples},
-      samplePeriod_{tau / nSamples}, parameter_filename_{parameter_filename}, {};
+      samplePeriod_{tau / nSamples}, parameter_filename_{parameter_filename} {};
 
 BRER::BRER(const input_param_type &params)
     : BRER(params.alpha, params.alpha_prev, params.alpha_max, params.mean,
