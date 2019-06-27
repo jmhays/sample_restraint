@@ -80,8 +80,8 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
           gmx::compat::make_unique<RAIIFile>(parameter_filename_.c_str(), "w");
       if (parameter_file_) {
         fprintf(parameter_file_->fh(),
-                "time\tR\tsample_count\ttarget\tconverged\talpha\talpha_max\tg\teta\n");
-        writeparameters(t, R,sampleCount_);
+                "time\t\tR\t\tsample_count\t\ttarget\t\tconverged\t\talpha\t\talpha_max\t\tg\t\teta\n");
+        writeparameters(t, R,);
       }
       initialized_ = true;
     }
@@ -99,7 +99,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
             //(Kasey) checking if the training run exceeds 400 checkpoints, or 20ns; if its does, the run is immediately stopped.
       if (sampleCount>400) {
          if (parameter_file_) {
-          writeparameters(t, R,sampleCount_);
+          writeparameters(t, R);
         }
          // Release filehandle and close file.
         parameter_file_->close();
@@ -135,14 +135,14 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       // Reset sample times.
       nextSampleTime_ = t + samplePeriod_;
       if (parameter_file_) {
-        writeparameters(t, R,sampleCount_);
+        writeparameters(t, R);
       }
     
 
       if (fabs(alpha_ - alpha_prev_) < tolerance_) {
         converged_ = TRUE;
         if (parameter_file_) {
-          writeparameters(t, R,sampleCount_);
+          writeparameters(t, R);
         }
         // Release filehandle and close file.
         parameter_file_->close();
