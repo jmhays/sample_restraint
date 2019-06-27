@@ -43,18 +43,18 @@ BRER::BRER(const input_param_type &params)
            params.eta, params.converged, params.tolerance, params.target,
            params.nSamples, params.parameter_filename) {}
 
-//(Kasey) adding parameter sample_count so that we may read in the log file and tell if the run was stopped
-void BRER::writeparameters(double t, const double R, int sample_count) {
+//(Kasey) adding parameter sampleCount so that we may read in the log file and tell if the run was stopped
+void BRER::writeparameters(double t, const double R) {
   if (parameter_file_) {
-    fprintf(parameter_file_->fh(), "%f\t%f\t%f\t%d\t%f\t%f\t%f\t%f\n", t, R,
-            sample_count, target_, converged_, alpha_, alpha_max_, g_, eta_);
+    fprintf(parameter_file_->fh(), "%f\t%f\t%f\t%f\t%d\t%f\t%f\t%f\t%f\n", t, R,
+            sampleCount_, target_, converged_, alpha_, alpha_max_, g_, eta_);
     fflush(parameter_file_->fh());
   }
 }
 
 void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
-                    const EnsembleResources &resources, int sample_count) {
-                      //(Kasey) sample_count counts the number of checkpoints; do not know if sample_count also needs to be here
+                    const EnsembleResources &resources) {
+                      //(Kasey) sampleCount_ counts the number of checkpoints; do not know if sampleCount_ also needs to be here
 
   if (!converged_) {
     auto rdiff = v - v0;
@@ -64,7 +64,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       nextSampleTime_ = t + samplePeriod_;
       windowStartTime_ = t;
       nextUpdateTime_ = t + tau_;
-      sample_count = 0;
+      
 
     
       mean_ = R;
@@ -81,7 +81,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       if (parameter_file_) {
         fprintf(parameter_file_->fh(),
                 "time\tR\ttarget\tconverged\talpha\talpha_max\tg\teta\n");
-        writeparameters(t, R, sample_count);
+        writeparameters(t, R, sampleCount_);
       }
       initialized_ = true;
     }
@@ -95,11 +95,11 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       mean_ = mean_ + difference / j;
       currentSample_++;
       nextSampleTime_ = (currentSample_ + 1) * samplePeriod_ + windowStartTime_;
-      sample_count = sample_count +1; //updating the number of sample checkpoints
+      sampleCount_= sampleCount_ +1; //updating the number of sample checkpoints
             //(Kasey) checking if the training run exceeds 400 checkpoints, or 20ns; if its does, the run is immediately stopped.
-      if (sample_count>400) {
+      if (sampleCount>400) {
          if (parameter_file_) {
-          writeparameters(t, R,sample_count);
+          writeparameters(t, R,sampleCount_;
         }
          // Release filehandle and close file.
         parameter_file_->close();
@@ -135,14 +135,14 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       // Reset sample times.
       nextSampleTime_ = t + samplePeriod_;
       if (parameter_file_) {
-        writeparameters(t, R,sample_count);
+        writeparameters(t, R,sampleCount_);
       }
     
 
       if (fabs(alpha_ - alpha_prev_) < tolerance_) {
         converged_ = TRUE;
         if (parameter_file_) {
-          writeparameters(t, R,sample_count);
+          writeparameters(t, R,sampleCount_);
         }
         // Release filehandle and close file.
         parameter_file_->close();
