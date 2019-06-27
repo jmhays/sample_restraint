@@ -97,7 +97,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       nextSampleTime_ = (currentSample_ + 1) * samplePeriod_ + windowStartTime_;
       sampleCount_= sampleCount_ +1; //updating the number of sample checkpoints
             //(Kasey) checking if the training run exceeds 400 checkpoints, or 20ns; if its does, the run is immediately stopped.
-      if (sampleCount > int(400)) {
+      if (sampleCount_> int(400)) {
          if (parameter_file_) {
           writeparameters(t, R);
         }
