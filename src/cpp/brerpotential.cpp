@@ -95,19 +95,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       mean_ = mean_ + difference / j;
       currentSample_++;
       nextSampleTime_ = (currentSample_ + 1) * samplePeriod_ + windowStartTime_;
-      sampleCount_= sampleCount_ +1; //updating the number of sample checkpoints
-            //(Kasey) checking if the training run exceeds 400 checkpoints, or 20ns; if its does, the run is immediately stopped.
-      if (sampleCount_> int(400)) {
-         if (parameter_file_) {
-          writeparameters(t, R);
-        }
-         // Release filehandle and close file.
-        parameter_file_->close();
-        parameter_file_.reset(nullptr);
-        // Issue stop signal exactly once.
-        resources.getHandle().stop();
 
-      }
 
     }
 
@@ -118,7 +106,19 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       eta_ = A_ / sqrt(gsqrsum_);
       alpha_prev_ = alpha_;
       alpha_ = alpha_prev_ - eta_ * g_;
-      
+      sampleCount_= sampleCount_ +1; //updating the number of sample checkpoints
+            //(Kasey) checking if the training run exceeds 400 checkpoints, or 20ns; if its does, the run is immediately stopped.
+      if (sampleCount_ > int(400)) {
+        if (parameter_file_) {
+          writeparameters(t, R);
+        }
+        // Release filehandle and close file.
+        parameter_file_->close();
+        parameter_file_.reset(nullptr);
+        // Issue stop signal exactly once.
+        resources.getHandle().stop();
+      }
+
 
       printf("alpha: %f\n", alpha_);
       if (fabs(alpha_) > alpha_max_)
