@@ -139,7 +139,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       }
     
 
-      if (fabs(alpha_ - alpha_prev_) < tolerance_) {
+      if (fabs(target_ - R) < tolerance_) {
         converged_ = TRUE;
         if (parameter_file_) {
           writeparameters(t, R);
