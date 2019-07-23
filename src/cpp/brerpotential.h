@@ -37,6 +37,7 @@ struct BRER_input_param_type {
 
   /// parameters for training coupling constant (Adagrad)
   double A{0};
+  double max_train_time{0};
   double tau{0};
   double g{0};
   double gsqrsum{0};
@@ -64,7 +65,7 @@ struct BRER_input_param_type {
 // https://eli.thegreenplace.net/2014/variadic-templates-in-c/
 
 std::unique_ptr<BRER_input_param_type>
-makeBRERParams(double A, double tau, double tolerance, double target,
+makeBRERParams(double A, double tau,double max_train_time, double tolerance, double target,
                unsigned int nSamples, std::string parameter_filename);
 //                   double samplePeriod)
 
@@ -77,7 +78,7 @@ public:
   explicit BRER(const input_param_type &params);
 
   BRER(double alpha, double alpha_prev, double alpha_max, double mean,
-       double variance, double A, double tau, double g, double gsqrsum,
+       double variance, double A, double tau, double max_train_time, double g, double gsqrsum,
        double eta, bool converged, double tolerance, double target,
        unsigned int nSamples, std::string parameter_filename);
 
@@ -125,6 +126,7 @@ private:
   /// parameters for training coupling constant (Adagrad)
   double A_;
   double tau_;
+  double max_train_time_;
   double g_;
   double gsqrsum_;
   double eta_;

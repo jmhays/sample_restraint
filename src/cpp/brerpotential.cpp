@@ -28,18 +28,18 @@
 namespace plugin {
 
 BRER::BRER(double alpha, double alpha_prev, double alpha_max, double mean,
-           double variance, double A, double tau, double g, double gsqrsum,
+           double variance, double A, double tau, double max_train_time, double g, double gsqrsum,
            double eta, bool converged, double tolerance, double target,
            unsigned int nSamples, std::string parameter_filename)
     : alpha_{alpha}, alpha_prev_{alpha_prev},
       alpha_max_{alpha_max}, mean_{mean}, variance_{variance}, A_{A}, tau_{tau},
-      g_{g}, gsqrsum_{gsqrsum}, eta_{eta}, converged_{converged},
-      tolerance_{tolerance}, target_{target}, nSamples_{nSamples},
+      max_train_time_{max_train_time}, g_{g}, gsqrsum_{gsqrsum}, eta_{eta}, 
+      converged_{converged},tolerance_{tolerance}, target_{target}, nSamples_{nSamples},
       samplePeriod_{tau / nSamples}, parameter_filename_{parameter_filename} {};
 
 BRER::BRER(const input_param_type &params)
     : BRER(params.alpha, params.alpha_prev, params.alpha_max, params.mean,
-           params.variance, params.A, params.tau, params.g, params.gsqrsum,
+           params.variance, params.A, params.tau, params.max_train_time, params.g, params.gsqrsum,
            params.eta, params.converged, params.tolerance, params.target,
            params.nSamples, params.parameter_filename) {}
 
@@ -108,7 +108,7 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       alpha_ = alpha_prev_ - eta_ * g_;
       sampleCount_= sampleCount_ +1; //updating the number of sample checkpoints
             //(Kasey) checking if the training run exceeds 400 checkpoints, or 20ns; if its does, the run is immediately stopped.
-      if (sampleCount_ > int(400)) {
+      if (sampleCount_ > (max_train_time_/tau_)) {
         if (parameter_file_) {
           writeparameters(t, R);
         }
@@ -183,12 +183,13 @@ gmx::PotentialPointData BRER::calculate(gmx::Vector v, gmx::Vector v0,
 }
 
 std::unique_ptr<BRER_input_param_type>
-makeBRERParams(double A, double tau, double tolerance, double target,
+makeBRERParams(double A, double tau, double max_train_time, double tolerance, double target,
                unsigned int nSamples, std::string parameter_filename) {
   using gmx::compat::make_unique;
   auto params = make_unique<BRER_input_param_type>();
   params->A = A;
   params->tau = tau;
+  params->max_train_time=max_train_time;
   params->tolerance = tolerance;
   params->target = target;
   params->nSamples = nSamples;
