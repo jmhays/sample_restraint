@@ -427,6 +427,7 @@ public:
     assert(parameter_dict.contains("target"));
     assert(parameter_dict.contains("A"));
     assert(parameter_dict.contains("tau"));
+    assert(parameter_dict.contains("max_train_time"));
     assert(parameter_dict.contains("num_samples"));
     assert(parameter_dict.contains("tolerance"));
     assert(parameter_dict.contains("logging_filename"));
@@ -439,13 +440,14 @@ public:
 
     auto A = py::cast<double>(parameter_dict["A"]);
     auto tau = py::cast<double>(parameter_dict["tau"]);
+    auto max_train_time = py::cast<double>(parameter_dict["max_train_time"]);
     auto nSamples = py::cast<double>(parameter_dict["num_samples"]);
     auto tolerance = py::cast<double>(parameter_dict["tolerance"]);
     auto target = py::cast<double>(parameter_dict["target"]);
     auto logging_filename =
         py::cast<std::string>(parameter_dict["logging_filename"]);
 
-    auto params = plugin::makeBRERParams(A, tau, tolerance, target, nSamples,
+    auto params = plugin::makeBRERParams(A, tau, max_train_time, tolerance, target, nSamples,
                                          logging_filename);
     params_ = std::move(*params);
 
