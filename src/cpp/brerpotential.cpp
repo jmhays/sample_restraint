@@ -28,31 +28,33 @@
 namespace plugin {
 
 BRER::BRER(double alpha, double alpha_prev, double alpha_max, double mean,
-           double variance, double A, double tau, double g, double gsqrsum,
+           double variance, double A, double tau, double max_train_time, double g, double gsqrsum,
            double eta, bool converged, double tolerance, double target,
            unsigned int nSamples, std::string parameter_filename)
     : alpha_{alpha}, alpha_prev_{alpha_prev},
       alpha_max_{alpha_max}, mean_{mean}, variance_{variance}, A_{A}, tau_{tau},
-      g_{g}, gsqrsum_{gsqrsum}, eta_{eta}, converged_{converged},
-      tolerance_{tolerance}, target_{target}, nSamples_{nSamples},
+      max_train_time_{max_train_time}, g_{g}, gsqrsum_{gsqrsum}, eta_{eta}, 
+      converged_{converged},tolerance_{tolerance}, target_{target}, nSamples_{nSamples},
       samplePeriod_{tau / nSamples}, parameter_filename_{parameter_filename} {};
 
 BRER::BRER(const input_param_type &params)
     : BRER(params.alpha, params.alpha_prev, params.alpha_max, params.mean,
-           params.variance, params.A, params.tau, params.g, params.gsqrsum,
+           params.variance, params.A, params.tau, params.max_train_time, params.g, params.gsqrsum,
            params.eta, params.converged, params.tolerance, params.target,
            params.nSamples, params.parameter_filename) {}
 
+//(Kasey) adding parameter sampleCount so that we may read in the log file and tell if the run was stopped
 void BRER::writeparameters(double t, const double R) {
   if (parameter_file_) {
-    fprintf(parameter_file_->fh(), "%f\t%f\t%f\t%d\t%f\t%f\t%f\t%f\n", t, R,
-            target_, converged_, alpha_, alpha_max_, g_, eta_);
+    fprintf(parameter_file_->fh(), "%f\t%f\t%d\t%f\t%d\t%f\t%f\t%f\t%f\n", t, R,
+            sampleCount_, target_, converged_, alpha_, alpha_max_, g_, eta_);
     fflush(parameter_file_->fh());
   }
 }
 
 void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
                     const EnsembleResources &resources) {
+                      //(Kasey) sampleCount_ counts the number of checkpoints; do not know if sampleCount_ also needs to be here
 
   if (!converged_) {
     auto rdiff = v - v0;
@@ -62,7 +64,9 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       nextSampleTime_ = t + samplePeriod_;
       windowStartTime_ = t;
       nextUpdateTime_ = t + tau_;
+      
 
+    
       mean_ = R;
 
       // We expect that the amount of energy we need to add to the system will
@@ -70,13 +74,13 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       //      A_ *= std::fabs(target_ - R);
       // Similarly, the tolerance should be adjusted so that it is essentially a
       // percentage of the maximum energy input
-      tolerance_ *= A_;
+      // tolerance_ *= A_;
 
       parameter_file_ =
           gmx::compat::make_unique<RAIIFile>(parameter_filename_.c_str(), "w");
       if (parameter_file_) {
         fprintf(parameter_file_->fh(),
-                "time\tR\ttarget\tconverged\talpha\talpha_max\tg\teta\n");
+                "time(ps)           R      sample_count   target    converged    alpha          alpha_max            g             eta\n");
         writeparameters(t, R);
       }
       initialized_ = true;
@@ -91,6 +95,8 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       mean_ = mean_ + difference / j;
       currentSample_++;
       nextSampleTime_ = (currentSample_ + 1) * samplePeriod_ + windowStartTime_;
+
+
     }
 
     if (t >= nextUpdateTime_) {
@@ -100,6 +106,19 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       eta_ = A_ / sqrt(gsqrsum_);
       alpha_prev_ = alpha_;
       alpha_ = alpha_prev_ - eta_ * g_;
+      sampleCount_= sampleCount_ +1; //updating the number of sample checkpoints
+            //(Kasey) checking if the training run exceeds 400 checkpoints, or 20ns; if its does, the run is immediately stopped.
+      if (sampleCount_ > (max_train_time_/tau_)) {
+        if (parameter_file_) {
+          writeparameters(t, R);
+        }
+        // Release filehandle and close file.
+        parameter_file_->close();
+        parameter_file_.reset(nullptr);
+        // Issue stop signal exactly once.
+        resources.getHandle().stop();
+      }
+
 
       printf("alpha: %f\n", alpha_);
       if (fabs(alpha_) > alpha_max_)
@@ -118,8 +137,9 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       if (parameter_file_) {
         writeparameters(t, R);
       }
+    
 
-      if (fabs(alpha_ - alpha_prev_) < tolerance_) {
+      if (fabs(target_ - R) < tolerance_) {
         converged_ = TRUE;
         if (parameter_file_) {
           writeparameters(t, R);
@@ -163,12 +183,13 @@ gmx::PotentialPointData BRER::calculate(gmx::Vector v, gmx::Vector v0,
 }
 
 std::unique_ptr<BRER_input_param_type>
-makeBRERParams(double A, double tau, double tolerance, double target,
+makeBRERParams(double A, double tau, double max_train_time, double tolerance, double target,
                unsigned int nSamples, std::string parameter_filename) {
   using gmx::compat::make_unique;
   auto params = make_unique<BRER_input_param_type>();
   params->A = A;
   params->tau = tau;
+  params->max_train_time=max_train_time;
   params->tolerance = tolerance;
   params->target = target;
   params->nSamples = nSamples;

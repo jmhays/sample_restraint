@@ -37,6 +37,7 @@ struct BRER_input_param_type {
 
   /// parameters for training coupling constant (Adagrad)
   double A{0};
+  double max_train_time{0};
   double tau{0};
   double g{0};
   double gsqrsum{0};
@@ -64,7 +65,7 @@ struct BRER_input_param_type {
 // https://eli.thegreenplace.net/2014/variadic-templates-in-c/
 
 std::unique_ptr<BRER_input_param_type>
-makeBRERParams(double A, double tau, double tolerance, double target,
+makeBRERParams(double A, double tau,double max_train_time, double tolerance, double target,
                unsigned int nSamples, std::string parameter_filename);
 //                   double samplePeriod)
 
@@ -77,7 +78,7 @@ public:
   explicit BRER(const input_param_type &params);
 
   BRER(double alpha, double alpha_prev, double alpha_max, double mean,
-       double variance, double A, double tau, double g, double gsqrsum,
+       double variance, double A, double tau, double max_train_time, double g, double gsqrsum,
        double eta, bool converged, double tolerance, double target,
        unsigned int nSamples, std::string parameter_filename);
 
@@ -125,6 +126,7 @@ private:
   /// parameters for training coupling constant (Adagrad)
   double A_;
   double tau_;
+  double max_train_time_;
   double g_;
   double gsqrsum_;
   double eta_;
@@ -139,12 +141,14 @@ private:
   double samplePeriod_;
 
   unsigned int currentSample_{0};
+
   // Sampling parameters that are dependent on t and thus set upon
   // initialization of the plugin For now, since we don't have access to t,
   // we'll set them all to zero.
   double nextSampleTime_{0};
   double windowStartTime_{0};
   double nextUpdateTime_{0};
+  unsigned int sampleCount_{0}; //(Kasey)
 
   std::string parameter_filename_;
   std::unique_ptr<RAIIFile> parameter_file_{nullptr};
