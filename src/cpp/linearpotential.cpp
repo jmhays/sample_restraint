@@ -8,23 +8,24 @@
 
 namespace plugin {
 std::unique_ptr<linear_input_param_type>
-makeLinearParams(double alpha, double target, double samplePeriod,
+makeLinearParams(bool send_stop_signal, double alpha, double target, double samplePeriod,
                  std::string logging_filename) {
   using gmx::compat::make_unique;
   auto params = make_unique<linear_input_param_type>();
+  params->send_stop_signal = send_stop_signal;
   params->alpha = alpha;
   params->target = target;
   params->samplePeriod = samplePeriod;
   params->logging_filename = logging_filename;
   return params;
 };
-Linear::Linear(double alpha, double target, double samplePeriod,
+Linear::Linear(bool send_stop_signal, double alpha, double target, double samplePeriod,
                std::string logging_filename)
-    : alpha_{alpha}, target_{target}, samplePeriod_{samplePeriod},
+    : send_stop_signal_{send_stop_signal}, alpha_{alpha}, target_{target}, samplePeriod_{samplePeriod},
       logging_filename_{logging_filename} {};
 
 Linear::Linear(const input_param_type &params)
-    : Linear(params.alpha, params.target, params.samplePeriod,
+    : Linear(params.send_stop_signal, params.alpha, params.target, params.samplePeriod,
              params.logging_filename) {}
 
 void Linear::writeparameters(double t, const double R) {
@@ -51,6 +52,9 @@ void Linear::callback(gmx::Vector v, gmx::Vector v0, double t,
     if (logging_file_) {
       fprintf(logging_file_->fh(), "time\tR\ttarget\talpha\n");
       writeparameters(t, R);
+    }
+    if (send_stop_signal_){
+      resources.getHandle().stop();
     }
     initialized_ = true;
   }

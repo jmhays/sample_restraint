@@ -200,6 +200,7 @@ public:
     assert(parameter_dict.contains("alpha"));
     assert(parameter_dict.contains("sample_period"));
     assert(parameter_dict.contains("logging_filename"));
+    assert(parameter_dict.contains("send_stop_signal"));
 
     py::list sites = parameter_dict["sites"];
     for (auto &&site : sites)
@@ -212,9 +213,10 @@ public:
     auto target = py::cast<double>(parameter_dict["target"]);
     auto logging_filename =
         py::cast<std::string>(parameter_dict["logging_filename"]);
+    auto send_stop_signal = py::cast<bool>(parameter_dict["send_stop_signal"]);
 
     auto params =
-        plugin::makeLinearParams(alpha, target, samplePeriod, logging_filename);
+        plugin::makeLinearParams(send_stop_signal, alpha, target, samplePeriod, logging_filename);
     params_ = std::move(*params);
 
     assert(py::hasattr(element, "workspec"));

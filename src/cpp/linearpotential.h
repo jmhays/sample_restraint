@@ -19,6 +19,7 @@
 namespace plugin {
 
 struct linear_input_param_type {
+  bool send_stop_signal{false};
   double alpha{0};
   double target{0};
   double samplePeriod{0};
@@ -26,7 +27,7 @@ struct linear_input_param_type {
 };
 
 std::unique_ptr<linear_input_param_type>
-makeLinearParams(double alpha, double target, double samplePeriod,
+makeLinearParams(bool send_stop_signal, double alpha, double target, double samplePeriod,
                  std::string logging_filename);
 
 class Linear {
@@ -35,7 +36,7 @@ public:
 
   explicit Linear(const input_param_type &params);
 
-  Linear(double alpha, double target, double samplePeriod,
+  Linear(bool send_stop_signal, double alpha, double target, double samplePeriod,
          std::string filename);
 
   gmx::PotentialPointData calculate(gmx::Vector v, gmx::Vector v0,
@@ -47,7 +48,8 @@ public:
                 const EnsembleResources &resources);
 
 private:
-  bool initialized_{FALSE};
+  bool initialized_{false};
+  bool send_stop_signal_{false};
   double alpha_;
 
   /// target distance
