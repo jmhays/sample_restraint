@@ -25,7 +25,8 @@
 #include "sessionresources.h"
 #include <fstream>
 
-namespace plugin {
+namespace plugin
+{
 
 BRER::BRER(double alpha, double alpha_prev, double alpha_max, double mean,
            double variance, double A, double tau, double g, double gsqrsum,
@@ -43,22 +44,36 @@ BRER::BRER(const input_param_type &params)
            params.eta, params.converged, params.tolerance, params.target,
            params.nSamples, params.parameter_filename) {}
 
-void BRER::writeparameters(double t, const double R) {
-  if (parameter_file_) {
-    fprintf(parameter_file_->fh(), "%f\t%f\t%f\t%d\t%f\t%f\t%f\t%f\n", t, R,
-            target_, converged_, alpha_, alpha_max_, g_, eta_);
+void BRER::writeparameters(double t, const double R)
+{
+  if (parameter_file_)
+  {
+    fprintf(parameter_file_->fh(), "%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%d\n", t, R,
+            target_, work_, alpha_, alpha_max_, g_, eta_, converged_);
     fflush(parameter_file_->fh());
   }
 }
 
-void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
-                    const EnsembleResources &resources) {
+void BRER::shutdown(double t, const double R, const EnsembleResources &resources)
+{
+  writeparameters(t, R);
+  // Release filehandle and close file.
+  parameter_file_->close();
+  parameter_file_.reset(nullptr);
+  // Issue stop signal exactly once.
+  resources.getHandle().stop();
+}
 
-  if (!converged_) {
-    auto rdiff = v - v0;
-    const auto Rsquared = dot(rdiff, rdiff);
-    const auto R = sqrt(Rsquared);
-    if (!initialized_) {
+void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
+                    const EnsembleResources &resources)
+{
+  auto rdiff = v - v0;
+  const auto Rsquared = dot(rdiff, rdiff);
+  const auto R = sqrt(Rsquared);
+  if (!converged_)
+  {
+    if (!initialized_)
+    {
       nextSampleTime_ = t + samplePeriod_;
       windowStartTime_ = t;
       nextUpdateTime_ = t + tau_;
@@ -74,15 +89,17 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
 
       parameter_file_ =
           gmx::compat::make_unique<RAIIFile>(parameter_filename_.c_str(), "w");
-      if (parameter_file_) {
+      if (parameter_file_)
+      {
         fprintf(parameter_file_->fh(),
-                "time\tR\ttarget\tconverged\talpha\talpha_max\tg\teta\n");
+                "time\tR\ttarget\twork\talpha\talpha_max\tg\teta\tconverged\n");
         writeparameters(t, R);
       }
       initialized_ = true;
     }
 
-    if (t >= nextSampleTime_) {
+    if (t >= nextSampleTime_)
+    {
       // update mean and variance
       int j = currentSample_ + 1;
       auto difference = (R - mean_);
@@ -93,7 +110,8 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       nextSampleTime_ = (currentSample_ + 1) * samplePeriod_ + windowStartTime_;
     }
 
-    if (t >= nextUpdateTime_) {
+    if (t >= nextUpdateTime_)
+    {
       assert(currentSample_ == nSamples_);
       g_ = (1 - mean_ / target_) * variance_;
       gsqrsum_ = gsqrsum_ + g_ * g_;
@@ -101,7 +119,6 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       alpha_prev_ = alpha_;
       alpha_ = alpha_prev_ - eta_ * g_;
 
-      printf("alpha: %f\n", alpha_);
       if (fabs(alpha_) > alpha_max_)
         alpha_max_ = fabs(alpha_);
 
@@ -115,29 +132,32 @@ void BRER::callback(gmx::Vector v, gmx::Vector v0, double t,
       currentSample_ = 0;
       // Reset sample times.
       nextSampleTime_ = t + samplePeriod_;
-      if (parameter_file_) {
+      if (parameter_file_)
+      {
         writeparameters(t, R);
       }
 
-      if (fabs(alpha_ - alpha_prev_) < tolerance_) {
+      if (fabs(alpha_ - alpha_prev_) < tolerance_)
+      {
         converged_ = TRUE;
-        if (parameter_file_) {
-          writeparameters(t, R);
-        }
-        // Release filehandle and close file.
-        parameter_file_->close();
-        parameter_file_.reset(nullptr);
-        // Issue stop signal exactly once.
-        resources.getHandle().stop();
+        shutdown(t, R, resources);
       }
     }
-  } else {
+  }
+  else
+  {
     // Do nothing after convergence but wait for the simulation to end.
   }
+
+  // No matter whether converged or not, do the work calculation.
+  if (R_prev_ > 0)
+    work_ += (R_prev_ - R) * alpha_prev_;
+  R_prev_ = R;
 }
 
 gmx::PotentialPointData BRER::calculate(gmx::Vector v, gmx::Vector v0,
-                                        gmx_unused double t) {
+                                        gmx_unused double t)
+{
   // Our convention is to calculate the force that will be applied to v.
   // An equal and opposite force is applied to v0.
   auto rdiff = v - v0;
@@ -151,7 +171,8 @@ gmx::PotentialPointData BRER::calculate(gmx::Vector v, gmx::Vector v0,
 
   output.energy = alpha_ * double(R) / target_;
   // Direction of force is ill-defined when v == v0
-  if (R != 0) {
+  if (R != 0)
+  {
     // For harmonic: output.force = k * (double(R0)/R - 1.0)*rdiff;
     // For BRER: outpu.force = - alpha/target * (unit vector in direction v-v0).
     output.force = real(-(alpha_ / target_ / double(R))) *
@@ -164,7 +185,8 @@ gmx::PotentialPointData BRER::calculate(gmx::Vector v, gmx::Vector v0,
 
 std::unique_ptr<BRER_input_param_type>
 makeBRERParams(double A, double tau, double tolerance, double target,
-               unsigned int nSamples, std::string parameter_filename) {
+               unsigned int nSamples, std::string parameter_filename)
+{
   using gmx::compat::make_unique;
   auto params = make_unique<BRER_input_param_type>();
   params->A = A;

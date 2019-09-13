@@ -44,6 +44,10 @@ struct BRER_input_param_type {
   bool converged{0};
   double tolerance{0.05};
 
+  /// parameters for work calculations
+  double work{0};
+  double R_prev{0};
+
   /// target distance
   double target{0};
 
@@ -88,6 +92,7 @@ public:
                                     gmx_unused double t);
 
   void writeparameters(double t, const double R);
+  void shutdown(double t, const double R, const EnsembleResources &resources);
 
   // An update function to be called on the simulation master rank/thread
   // periodically by the Restraint framework.
@@ -117,6 +122,10 @@ private:
   double eta_;
   bool converged_;
   double tolerance_;
+
+  /// work parameters
+  double work_;
+  double R_prev_;
 
   /// target distance
   double target_;

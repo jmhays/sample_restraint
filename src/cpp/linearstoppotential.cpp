@@ -35,7 +35,7 @@ LinearStop::LinearStop(const input_param_type &params)
 
 void LinearStop::writeparameters(double t, const double R) {
   if (logging_file_) {
-    fprintf(logging_file_->fh(), "%f\t%f\t%f\t%f\n", t, R, target_, alpha_);
+    fprintf(logging_file_->fh(), "%f\t%f\t%f\t%f\t%f\n", t, R, target_, alpha_, work_);
     fflush(logging_file_->fh());
   }
 }
@@ -63,7 +63,7 @@ void LinearStop::callback(gmx::Vector v, gmx::Vector v0, double t,
     logging_file_ =
         gmx::compat::make_unique<RAIIFile>(logging_filename_.c_str(), "w");
     if (logging_file_) {
-      fprintf(logging_file_->fh(), "time\tR\ttarget\talpha\n");
+      fprintf(logging_file_->fh(), "time\tR\ttarget\talpha\twork\n");
       writeparameters(t, R);
     }
     initialized_ = true;
@@ -97,6 +97,7 @@ gmx::PotentialPointData LinearStop::calculate(gmx::Vector v, gmx::Vector v0,
   // Our convention is to calculate the force that will be applied to v.
   // An equal and opposite force is applied to v0.
   time_ = t;
+  int sign{1};
   auto rdiff = v - v0;
   const auto Rsquared = dot(rdiff, rdiff);
   const auto R = sqrt(Rsquared);
@@ -107,12 +108,15 @@ gmx::PotentialPointData LinearStop::calculate(gmx::Vector v, gmx::Vector v0,
   gmx::PotentialPointData output;
 
   output.energy = alpha_ / target_ * double(R);
+  
+  if (R > target_) sign = -sign;
+
   // Direction of force is ill-defined when v == v0
   if (R != 0 && R != target_) {
-    if (R > target_)
-      output.force = real(-(alpha_ / target_ / double(R))) * rdiff;
-    else
-      output.force = real((alpha_ / target_ / double(R))) * rdiff;
+    output.force = real(sign*(alpha_ / target_ / double(R))) * rdiff;
+    
+    work_ += sign * alpha_ * (R - R_prev_)/target_;
+    R_prev_ = R;
   }
 
   //    history.emplace_back(magnitude - R0);

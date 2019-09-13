@@ -66,6 +66,10 @@ private:
   double alpha_;
   double tolerance_;
 
+  /// work
+  double work_{0};
+  double R_prev_{0};
+
   /// target distance
   double target_;
 
