@@ -10,10 +10,12 @@
 
 #include <vector>
 
-namespace plugin {
+namespace plugin
+{
 std::unique_ptr<linearstop_input_param_type>
 makeLinearStopParams(double alpha, double target, double tolerance,
-                     double samplePeriod, std::string logging_filename) {
+                     double samplePeriod, std::string logging_filename)
+{
   using gmx::compat::make_unique;
   auto params = make_unique<linearstop_input_param_type>();
   params->alpha = alpha;
@@ -33,15 +35,18 @@ LinearStop::LinearStop(const input_param_type &params)
     : LinearStop(params.alpha, params.target, params.tolerance,
                  params.samplePeriod, params.logging_filename) {}
 
-void LinearStop::writeparameters(double t, const double R) {
-  if (logging_file_) {
+void LinearStop::writeparameters(double t, const double R)
+{
+  if (logging_file_)
+  {
     fprintf(logging_file_->fh(), "%f\t%f\t%f\t%f\t%f\n", t, R, target_, alpha_, work_);
     fflush(logging_file_->fh());
   }
 }
 
 void LinearStop::callback(gmx::Vector v, gmx::Vector v0, double t,
-                          const EnsembleResources &resources) {
+                          const EnsembleResources &resources)
+{
 
   // Update distance
   auto rdiff = v - v0;
@@ -53,8 +58,8 @@ void LinearStop::callback(gmx::Vector v, gmx::Vector v0, double t,
   //        %f\nconverged = %d\n======\n",
   //               R, target_, tolerance_, converged);
   // Open logs at the beginning of the simulation
-  if (!initialized_) {
-    std::cout << "Initializing the LinearStop restraint" << std::endl;
+  if (!initialized_)
+  {
     startTime_ = t;
     nextSampleTime_ = startTime_ + samplePeriod_;
     //            printf("startTime_ = %f, nextSampleTime_ = %f, samplePeriod_ =
@@ -62,7 +67,8 @@ void LinearStop::callback(gmx::Vector v, gmx::Vector v0, double t,
     //                   startTime_, nextSampleTime_, samplePeriod_);
     logging_file_ =
         gmx::compat::make_unique<RAIIFile>(logging_filename_.c_str(), "w");
-    if (logging_file_) {
+    if (logging_file_)
+    {
       fprintf(logging_file_->fh(), "time\tR\ttarget\talpha\twork\n");
       writeparameters(t, R);
     }
@@ -71,14 +77,17 @@ void LinearStop::callback(gmx::Vector v, gmx::Vector v0, double t,
   }
 
   // If the simulation has not converged, keep running and log
-  if (!converged && (t >= nextSampleTime_)) {
+  if (!converged && (t >= nextSampleTime_))
+  {
     writeparameters(t, R);
     currentSample_++;
     nextSampleTime_ = (currentSample_ + 1) * samplePeriod_ + startTime_;
   }
 
-  if (converged) {
-    if (stop_not_called_) {
+  if (converged)
+  {
+    if (stop_not_called_)
+    {
       stop_not_called_ = false;
       writeparameters(t, R);
       //                fprintf(logging_file_->fh(), "Simulation converged at t
@@ -86,14 +95,17 @@ void LinearStop::callback(gmx::Vector v, gmx::Vector v0, double t,
       logging_file_->close();
       logging_file_.reset(nullptr);
       resources.getHandle().stop();
-    } else {
+    }
+    else
+    {
       // Do nothing until all stops have been called
     }
   }
 }
 
 gmx::PotentialPointData LinearStop::calculate(gmx::Vector v, gmx::Vector v0,
-                                              gmx_unused double t) {
+                                              gmx_unused double t)
+{
   // Our convention is to calculate the force that will be applied to v.
   // An equal and opposite force is applied to v0.
   time_ = t;
@@ -108,14 +120,16 @@ gmx::PotentialPointData LinearStop::calculate(gmx::Vector v, gmx::Vector v0,
   gmx::PotentialPointData output;
 
   output.energy = alpha_ / target_ * double(R);
-  
-  if (R > target_) sign = -sign;
+
+  if (R > target_)
+    sign = -sign;
 
   // Direction of force is ill-defined when v == v0
-  if (R != 0 && R != target_) {
-    output.force = real(sign*(alpha_ / target_ / double(R))) * rdiff;
-    
-    work_ += sign * alpha_ * (R - R_prev_)/target_;
+  if (R != 0 && R != target_)
+  {
+    output.force = real(sign * (alpha_ / target_ / double(R))) * rdiff;
+
+    work_ += sign * alpha_ * (R - R_prev_) / target_;
     R_prev_ = R;
   }
 
